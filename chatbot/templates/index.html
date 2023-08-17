@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Chatbot</title>
+    <style>
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .dot {
+            width: 10px;
+            height: 10px;
+            background-color: #333;
+            border-radius: 50%;
+            animation: pulse 1s infinite alternate;
+            margin: 0 3px;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            font-size: 26px;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        #chat-container {
+            width: 100%;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .message {
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 10px;
+        }
+
+        .message-label {
+            font-weight: bold;
+            margin-right: 5px;
+        }
+
+        .message-text {
+            background-color: #f1f1f1;
+            padding: 20px;
+            border-radius: 8px;
+            position: relative;
+            font-size: 26px; 
+        }
+
+        .user .message-text {
+            background-color: #dcf8c6;
+        }
+
+        .bot .message-text {
+            background-color: #e7e7e7;
+        }
+
+        .dots {
+            display: flex;
+            align-items: center;
+            margin-left: 5px;
+            position: absolute;
+            bottom: 0;
+        }
+
+        .dot {
+            width: 10px;
+            height: 10px;
+            background-color: #333;
+            border-radius: 50%;
+            animation: pulse 1s infinite alternate;
+            margin: 0 3px;
+        }
+        #message-input {
+            width: 80%; 
+            height: 40px; 
+            font-size: 26px;
+            padding: 5px;
+        }
+        @keyframes pulse {
+            0% {
+                transform: scale(1);
+            }
+            100% {
+                transform: scale(1.5);
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>Chatbot</h1>
+    <div id="chat-container">
+        <div id="chat-messages">
+        </div>
+        <div id="user-input">
+            <input type="text" id="message-input" placeholder="Type a message...">
+            <button id="send-button">Send</button>
+        </div>
+    </div>
+    <script>
+        const chatMessages = document.getElementById("chat-messages");
+        const messageInput = document.getElementById("message-input");
+        const sendButton = document.getElementById("send-button");
+
+        function addMessage(text, sender) {
+            const messageDiv = document.createElement("div");
+            messageDiv.className = `message ${sender}`;
+
+            const messageLabel = document.createElement("div");
+            messageLabel.className = "message-label";
+            messageLabel.innerText = sender === "user" ? "You:" : "Bot:";
+
+            const messageText = document.createElement("div");
+            messageText.className = "message-text";
+
+            // Check if the text is an object (JSON response) and handle it
+            if (typeof text === "object") {
+                messageText.innerText = text.response; 
+            } else {
+                messageText.innerText = text;
+            }
+
+            const dotsDiv = document.createElement("div");
+            dotsDiv.className = "dots";
+            messageText.appendChild(dotsDiv); 
+
+            messageDiv.appendChild(messageLabel);
+            messageDiv.appendChild(messageText);
+
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function showLoading() {
+            const loadingDiv = document.createElement("div");
+            loadingDiv.className = "loading";
+            loadingDiv.innerHTML = '<div class="dot"></div><div class="dot"></div><div class="dot"></div>';
+            chatMessages.appendChild(loadingDiv);
+        }
+
+        function hideLoading() {
+            const loadingDiv = document.querySelector(".loading");
+            if (loadingDiv) {
+                chatMessages.removeChild(loadingDiv);
+            }
+        }
+
+        sendButton.addEventListener("click", function() {
+            const userInput = messageInput.value;
+            if (userInput.trim() !== "") {
+                showLoading(); 
+                addMessage(userInput, "user");
+                messageInput.value = "";
+
+                fetch("/get_response", {
+                    method: "POST",
+                    body: JSON.stringify({ user_input: userInput }),
+                    headers: {
+                        "Content-Type": "application/json"
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    hideLoading(); 
+                    const botResponse = data.response;
+                    addMessage(`${botResponse.response}`, "bot");
+                });
+            }
+        });
+    </script>
+</body>
+</html>
